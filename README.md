@@ -31,6 +31,8 @@ python .\googleCrawler.py -w "example.com" -n 1
 
 如果访问状态码显示-1代表请求失败
 
+你这里使用clash可能会出现问题，解决方法同样适用命令行代理问题，在设置里找到 System Proxy开启 Specify Protocol 设置为On即可解决
+
 ## 参考项目
 
 1、https://github.com/littlebin404/Google_Spider
