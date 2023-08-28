@@ -62,7 +62,7 @@ def search_and_get_results(query, page_number=4):
             'User-Agent': get_random_user_agent(user_agents)
         }
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers,proxies=proxies)
 
             html_content = response.text
             soup = BeautifulSoup(html_content, 'html.parser')
@@ -86,7 +86,8 @@ def search_and_get_results(query, page_number=4):
                         pass  # 处理 get_text异常
         except Exception as e:
             # print(e)
-            print(f"[-] 页面访问失败请检查代理" + url)
+            print(f"[-] 页面访问失败请检查代理")
+            print(url)
             break
 
         pagenum += 10
@@ -196,7 +197,7 @@ def main():
         print("[!] 未提供页码数，请使用 -n 或 --page-number 参数指定页码数")
         sys.exit()
     if page_number <= 0:
-        print("页码数必须大于等于 1，请使用 -n 或 --page-number 参数指定正确的页码数")
+        print("[!] 页码数必须大于等于 1，请使用 -n 或 --page-number 参数指定正确的页码数")
         sys.exit()
 
     all_results = get_all_results(search_word, page_number=page_number)  # page_number为搜索的页数
