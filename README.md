@@ -16,6 +16,8 @@ python .\googleCrawler.py -w "example.com" -n 1
 
 ## 食用方法
 
+### 命令行
+
 1、检查环境 `pip install -r requirements.txt
 `
 
@@ -32,6 +34,18 @@ python .\googleCrawler.py -w "example.com" -n 1
 如果访问状态码显示-1代表请求失败
 
 你这里使用clash可能会出现问题，解决方法同样适用命令行代理问题，在设置里找到 System Proxy开启 Specify Protocol 设置为On即可解决
+
+### 图形化
+
+直接填参数就中，样例
+
+![7bfa936323e6c56de0baf5b7af4feb2](https://photo-1308752946.cos.ap-beijing.myqcloud.com/7bfa936323e6c56de0baf5b7af4feb2.png)
+
+<center>搜索界面</center>
+
+![image-20230903201023015](https://photo-1308752946.cos.ap-beijing.myqcloud.com/image-20230903201023015.png)
+
+<center>结果页面</center>
 
 ## 参考项目
 

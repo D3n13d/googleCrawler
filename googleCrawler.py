@@ -1,12 +1,12 @@
-import argparse
+import os
 import random
-import sys
 import urllib
 import urllib.parse
 from datetime import datetime
 
 import pandas as pd
 import requests
+import streamlit as st
 from bs4 import BeautifulSoup
 from colorama import init, Fore, Style
 from pyfiglet import Figlet
@@ -27,12 +27,6 @@ user_agents = [
     # 可根据需要添加更多的 User-Agent
 ]
 init(autoreset=True)
-'''
-Note：
-你这里使用clash可能会出现问题，解决方法同样适用命令行代理问题，在设置里找到 System Proxy开启 Specify Protocol 设置为On即可解决
-推荐使用 香港、美国节点，如果出现没有结果也没有报错的情况，请切换节点，这是个有点玄学的问题...
-
-'''
 
 
 def print_logo():
@@ -62,7 +56,7 @@ def search_and_get_results(query, page_number=4):
             'User-Agent': get_random_user_agent(user_agents)
         }
         try:
-            response = requests.get(url, headers=headers,proxies=proxies)
+            response = requests.get(url, headers=headers, proxies=proxies)
 
             html_content = response.text
             soup = BeautifulSoup(html_content, 'html.parser')
@@ -98,16 +92,16 @@ def search_and_get_results(query, page_number=4):
 def get_search_words(keyword):
     rule_dict = {
         "数据泄露": "{} intext:vpn OR 用户名 OR 密码 OR 帐号 OR 默认密码".format(keyword),
-        "相关文件": "{} filetype:.doc OR .docx OR .xls OR .xlsx OR .ppt OR .pptx OR .odt OR .pdf OR .rtf OR .sxw OR .psw OR .csv".format(
-            keyword),
-        "文件泄露": "{} ext:.bkf OR .bkp OR .old OR .backup OR .bak OR .swp OR .rar OR .txt OR .zip OR .7z OR .sql OR .tar.gz OR .tgz OR .tar OR .conf OR .cnf OR .reg OR .inf OR .rdp OR .cfg OR .txt OR .ora OR .ini".format(
-            keyword),
-        "数据库文件泄露": "{} ext:.sql OR .dbf OR .mdb OR .db".format(keyword),
-        "日志信息": "{} ext:.log".format(keyword),
-        "报错页面": '{} intext:"sql syntax near" OR intext:"error" OR intext:"syntax error has occurred" OR intext:"incorrect syntax near" OR intext:"unexpected end of SQL command" OR intext:"Warning: mysql_connect()" OR intext:"Warning: mysql_query()" OR intext:"Warning: pg_connect()'.format(
-            keyword),
-        "SSO/VPN": "{} intext:统一认证 OR intext:vpn OR intext:webvpn OR intext:sslvpn".format(keyword),
-        "网站功能": '{} intext:后台 OR intext:留言 OR intext:邮箱'.format(keyword)
+        # "相关文件": "{} filetype:.doc OR .docx OR .xls OR .xlsx OR .ppt OR .pptx OR .odt OR .pdf OR .rtf OR .sxw OR .psw OR .csv".format(
+        #     keyword),
+        # "文件泄露": "{} ext:.bkf OR .bkp OR .old OR .backup OR .bak OR .swp OR .rar OR .txt OR .zip OR .7z OR .sql OR .tar.gz OR .tgz OR .tar OR .conf OR .cnf OR .reg OR .inf OR .rdp OR .cfg OR .txt OR .ora OR .ini".format(
+        #     keyword),
+        # "数据库文件泄露": "{} ext:.sql OR .dbf OR .mdb OR .db".format(keyword),
+        # "日志信息": "{} ext:.log".format(keyword),
+        # "报错页面": '{} intext:"sql syntax near" OR intext:"error" OR intext:"syntax error has occurred" OR intext:"incorrect syntax near" OR intext:"unexpected end of SQL command" OR intext:"Warning: mysql_connect()" OR intext:"Warning: mysql_query()" OR intext:"Warning: pg_connect()'.format(
+        #     keyword),
+        # "SSO/VPN": "{} intext:统一认证 OR intext:vpn OR intext:webvpn OR intext:sslvpn".format(keyword),
+        # "网站功能": '{} intext:后台 OR intext:留言 OR intext:邮箱'.format(keyword)
     }
 
     return rule_dict
@@ -139,23 +133,6 @@ def get_all_results(search_word, page_number=1):
     return all_results
 
 
-def gen_filename(search_word):
-    current_datetime = datetime.now()
-    formatted_datetime = current_datetime.strftime("%m-%d-%H-%M")
-    formatted_search_word = search_word.replace(" ", "_").replace(".", "_")  # 将空格替换为下划线以美化搜索词
-    filename = f"{formatted_datetime}_{formatted_search_word}.xlsx"
-    return filename
-
-
-def load_data2file(clean_data, filename):
-    types = [data['type'] for data in clean_data]
-    titles = [data['title'] for data in clean_data]
-    links = [data['link'] for data in clean_data]
-    status_codes = [data['status_code'] for data in clean_data]
-    df = pd.DataFrame({'事件类型': types, '标题': titles, '链接': links, '状态码': status_codes})
-    df.to_excel(filename, index=False)
-
-
 def check_url_status(data_list):
     status_codes = []
 
@@ -180,33 +157,112 @@ def check_url_status(data_list):
     return clean_data_with_status
 
 
+def load_excel(file_path):
+    return pd.read_excel(file_path, engine='openpyxl')
+
+
+def save_to_output(df, filename):
+    output_path = f"./output/{filename}"
+    df.to_excel(output_path, index=False, engine='openpyxl')
+    return output_path
+
+
+def load_data2file(clean_data, filename):
+    if not os.path.exists("./output"):
+        os.mkdir("./output")
+
+    # 构造DataFrame
+    types = [data['type'] for data in clean_data]
+    titles = [data['title'] for data in clean_data]
+    links = [data['link'] for data in clean_data]
+    status_codes = [data['status_code'] for data in clean_data]
+
+    df = pd.DataFrame({'事件类型': types, '标题': titles, '链接': links, '状态码': status_codes})
+    df.to_excel(filename, index=False)
+
+
+def gen_filename(search_word):
+    current_datetime = datetime.now()
+    formatted_datetime = current_datetime.strftime("%m-%d-%H-%M")
+    formatted_search_word = search_word.replace(" ", "_").replace(".", "_")  # 将空格替换为下划线以美化搜索词
+    filename = f"./output/{formatted_datetime}_{formatted_search_word}.xlsx"
+    return filename
+
+
+def display_dataframe_with_links(df):  # 将DataFrame中的链接列替换为HTML链接
+    links_html = df['link'].apply(lambda x: f'<a href="{x}" target="_blank">{x}</a>').tolist()
+    df_display = df.copy()
+    df_display['链接'] = links_html
+    st.write(df_display.to_html(escape=False), unsafe_allow_html=True)
+
+
+def main_page():
+    st.markdown("<h2 style='text-align: center; color: black;'>googleCrawler</h2>", unsafe_allow_html=True)
+
+    search_word = st.text_input("请输入搜索词:", value="")
+    page_number = st.slider("选择页码数", 1, 20, 1)
+
+    if st.button("开始搜索"):
+        if not search_word:
+            st.warning("未提供搜索词。")
+            return
+        if not page_number:
+            st.warning("未提供页码数。")
+            return
+        if page_number <= 0:
+            st.warning("页码数必须大于等于 1。")
+            return
+
+        with st.spinner("正在搜索......"):
+            all_results = get_all_results(search_word, page_number=page_number)
+            clean_data = process_data(search_word, all_results)
+            filename = gen_filename(search_word)
+
+        with st.spinner("正在检测目标是否可访问..."):
+            load_data2file(check_url_status(clean_data), filename)
+            st.success("搜索完成!")
+            # 从文件读取一次
+            df = pd.read_excel(filename, engine='openpyxl')
+            st.dataframe(df)
+
+    if st.button("查看历史搜索结果"):
+        st.session_state.page = "history"
+        st.experimental_rerun()
+
+
+def history_page():
+    st.markdown("<h4 style='color: black;'>历史搜索结果检测</h4>", unsafe_allow_html=True)
+    try:
+        files = os.listdir("./output")
+        excel_files = [file for file in files if file.endswith('.xlsx')]
+
+        if not excel_files:
+            st.warning("没有找到历史搜索的Excel文件")
+            return
+
+        selected_file = st.selectbox("选择一个历史文件:", ["请选择文件"] + excel_files)
+
+        if selected_file != "请选择文件":
+            df = load_excel(f"./output/{selected_file}")
+            st.dataframe(df)
+    except Exception as e:
+        st.error(f"出现错误：{e}")
+
+    # 提供返回到主页面的按钮
+    if st.button("返回主页面"):
+        st.session_state.page = "main"
+
+
 def main():
-    print_logo()
-    parser = argparse.ArgumentParser(description='Process data from command line', add_help=True)
-    parser.add_argument('-w', '--search-word', type=str, help='The search word')
-    parser.add_argument('-n', '--page-number', type=int, default=1, help='The search page_number')
-    args = parser.parse_args()
+    if "page" not in st.session_state:
+        st.session_state.page = "main"
 
-    search_word = args.search_word
-    page_number = args.page_number
-
-    if not search_word:
-        print("[!] 未提供搜索词，请使用 -w 或 --search-word 参数指定搜索词")
-        sys.exit()
-    if not page_number:
-        print("[!] 未提供页码数，请使用 -n 或 --page-number 参数指定页码数")
-        sys.exit()
-    if page_number <= 0:
-        print("[!] 页码数必须大于等于 1，请使用 -n 或 --page-number 参数指定正确的页码数")
-        sys.exit()
-
-    all_results = get_all_results(search_word, page_number=page_number)  # page_number为搜索的页数
-
-    clean_data = process_data(search_word, all_results)
-    print(clean_data)
-
-    load_data2file(check_url_status(clean_data), gen_filename(search_word))  # 结果写入文件
+    if st.session_state.page == "main":
+        main_page()
+    elif st.session_state.page == "history":
+        history_page()
 
 
-if __name__ == '__main__':
+# 调用主函数
+if __name__ == "__main__":
     main()
